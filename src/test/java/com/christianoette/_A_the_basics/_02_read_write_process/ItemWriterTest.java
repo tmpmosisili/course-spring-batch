@@ -65,10 +65,14 @@ class ItemWriterTest {
 
         @Bean
         public Step readerStep() {
-            return stepBuilderFactory.get("readJsonStep")
-                    .chunk(1)
+            SimpleStepBuilder<Input, Input> simpleStepBuilder
+                    = stepBuilderFactory.get("readJsonStep")
+                    .chunk(1);
+
+            return simpleStepBuilder
                     .reader(reader())
-                    .writer(System.out::println).build();
+                    .processor(new PassThroughItemProcessor<>())
+                    .writer(writer()).build();
         }
 
         @Bean
@@ -84,6 +88,17 @@ class ItemWriterTest {
                     .jsonObjectReader(new JacksonJsonObjectReader<>(Input.class))
                     .resource(new FileSystemResource(file))
                     .name("jsonItemReader")
+                    .build();
+        }
+
+        @Bean
+        public JsonFileItemWriter<Input> writer() {
+            Resource outputResource = new FileSystemResource("output/output.json");
+
+            return new JsonFileItemWriterBuilder<Input>()
+                    .jsonObjectMarshaller(new JacksonJsonObjectMarshaller<>())
+                    .resource(outputResource)
+                    .name("jsonItemWriter")
                     .build();
         }
 

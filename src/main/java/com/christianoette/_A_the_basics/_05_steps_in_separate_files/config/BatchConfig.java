@@ -2,7 +2,6 @@ package com.christianoette._A_the_basics._05_steps_in_separate_files.config;
 
 import com.christianoette._A_the_basics._05_steps_in_separate_files.dto.InputData;
 import com.christianoette._A_the_basics._05_steps_in_separate_files.dto.OutputData;
-import com.christianoette.utils.CourseUtils;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -12,11 +11,9 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.SimpleStepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
-import org.springframework.batch.item.json.JacksonJsonObjectReader;
 import org.springframework.batch.item.json.JsonFileItemWriter;
 import org.springframework.batch.item.json.JsonItemReader;
 import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
-import org.springframework.batch.item.json.builder.JsonItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,13 +27,15 @@ public class BatchConfig {
     private final JobBuilderFactory jobBuilderFactory;
     private final JobRepository jobRepository;
     private final StepBuilderFactory stepBuilderFactory;
-
+    private final JsonItemReader<InputData> myJsonItemReader;
     public BatchConfig(JobBuilderFactory jobBuilderFactory,
                        JobRepository jobRepository,
-                       StepBuilderFactory stepBuilderFactory) {
+                       StepBuilderFactory stepBuilderFactory,
+                       JsonItemReader<InputData> myJsonItemReader) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.jobRepository = jobRepository;
         this.stepBuilderFactory = stepBuilderFactory;
+        this.myJsonItemReader = myJsonItemReader;
     }
 
     @Bean
@@ -53,7 +52,7 @@ public class BatchConfig {
                 .repository(jobRepository)
                 .chunk(1);
 
-        return chunk.reader(reader(null))
+        return chunk.reader(myJsonItemReader)
                 .processor(upperCaseJsonProcessor())
                 .writer(writer(null))
                 .build();
@@ -68,17 +67,7 @@ public class BatchConfig {
         };
     }
 
-    @Bean
-    @StepScope
-    public JsonItemReader<InputData> reader(@Value("#{jobParameters['inputPath']}") String inputPath) {
-        Resource inputResource = CourseUtils.getFileResource(inputPath);
 
-        return new JsonItemReaderBuilder<InputData>()
-                .jsonObjectReader(new JacksonJsonObjectReader<>(InputData.class))
-                .resource(inputResource)
-                .name("jsonItemReader")
-                .build();
-    }
 
     @Bean
     @StepScope
